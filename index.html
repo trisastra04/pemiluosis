@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Voting Ketua OSIS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .vote-button:disabled {
+            background-color: #4a5568;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 4px solid #d97706; /* Warna disesuaikan dengan tema */
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* GAYA BACKGROUND BARU UNTUK HALAMAN LOGIN */
+        #login-page::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            opacity: 0.08; /* Transparansi background */
+            /* PERBAIKAN: Menggunakan SVG yang lebih kecil dan dirancang untuk diulang secara horizontal */
+            background-image: url("data:image/svg+xml,%3Csvg width='450' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpath id='p' d='M-50,40 q112.5,-30 225,0 t225,0' /%3E%3C/defs%3E%3Ctext fill='%23ca8a04' font-family='Inter, sans-serif' font-size='20' font-weight='500'%3E%3CtextPath href='%23p'%3ESMA Unggul Islam Al-Fahd • Komisi Pemilihan OSIS • Langsung, Jujur, &amp; Adil%3C/textPath%3E%3C/text%3E%3C/svg%3E");
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-900 antialiased">
+
+    <!-- Halaman Login -->
+    <div id="login-page" class="relative flex items-center justify-center min-h-screen p-4 overflow-hidden">
+        
+        <!-- Tombol Reset Aplikasi -->
+        <div class="absolute top-4 left-4 z-10">
+            <button onclick="promptForReset()" class="text-xs text-gray-500 hover:text-red-600 bg-white/50 backdrop-blur-sm px-2 py-1 rounded">
+                Reset Aplikasi
+            </button>
+        </div>
+
+        <div class="relative z-10 w-full max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl border border-gray-200">
+            <!-- LOGO DITAMBAHKAN DI SINI -->
+            <div class="flex justify-center items-center space-x-4 mb-8">
+                <img src="images/logo-sekolah.png" alt="Logo Sekolah" class="h-24 object-contain">
+                <img src="images/logo-osis.png" alt="Logo OSIS" class="h-24 object-contain">
+            </div>
+
+            <h1 class="text-3xl font-bold text-center text-amber-600 mb-2">Selamat Datang</h1>
+            <p class="text-center text-gray-600 mb-8 text-lg">Silakan masukkan kode unik Anda untuk memilih.</p>
+            
+            <div class="space-y-6">
+                <input type="text" id="unique-code-input" placeholder="Masukkan Kode Unik" class="w-full px-4 py-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition">
+                <button id="login-button" onclick="handleLogin()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-4 px-4 text-lg rounded-lg transition-colors duration-300 flex items-center justify-center">
+                    <span id="login-button-text">Masuk</span>
+                    <div id="login-loader" class="loader hidden"></div>
+                </button>
+            </div>
+            <p id="login-error" class="text-red-500 text-sm text-center mt-4 h-5"></p>
+        </div>
+    </div>
+
+    <!-- Halaman Voting (Awalnya Tersembunyi) -->
+    <div id="voting-page" class="hidden relative container mx-auto px-4 py-8 md:py-12">
+        
+        <!-- Tombol Logout -->
+        <div id="logout-container" class="absolute top-4 left-4 z-20 hidden">
+            <button onclick="handleLogout()" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300">
+                Logout
+            </button>
+        </div>
+
+        <header class="text-center mb-6"> <!-- Jarak diubah di sini dari mb-10 menjadi mb-6 -->
+            <!-- Baris untuk Logo dan Judul -->
+            <div class="flex justify-center items-center gap-4 md:gap-8">
+                <!-- Logo Kiri -->
+                <img src="images/logo-sekolah.png" alt="Logo Sekolah" class="h-20 md:h-24 object-contain flex-shrink-0">
+                
+                <!-- Wrapper untuk Judul agar bisa di tengah -->
+                <div class="flex-grow-0">
+                    <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-yellow-500">E-Voting Pemilihan Ketua & Wakil Ketua OSIS</h1>
+                    <h2 class="text-lg sm:text-xl md:text-2xl font-bold text-gray-700 mt-1">SMA Unggul Islam Al-Fahd</h2>
+                </div>
+                
+                <!-- Logo Kanan -->
+                <img src="images/logo-osis.png" alt="Logo OSIS" class="h-20 md:h-24 object-contain flex-shrink-0">
+            </div>
+        
+            <!-- Subtitle di bawahnya -->
+            <p class="text-gray-600 mt-4 text-lg">Gunakan hak suaramu untuk memilih pemimpin masa depan!</p>
+        </header>
+
+        <div id="vote-alert" class="hidden max-w-4xl mx-auto p-4 rounded-lg mb-8" role="alert">
+            <!-- Konten notifikasi akan diisi oleh JavaScript -->
+        </div>
+
+        <!-- Wrapper untuk memperbesar area kandidat -->
+        <div class="max-w-7xl mx-auto">
+            <main id="candidates-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+                <!-- Kartu kandidat akan di-generate oleh JavaScript -->
+            </main>
+        </div>
+    </div>
+
+    <script>
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzfs9mblI3m_COwMOvx8qV1LkLuNu2fctBJZ09iflj6ROpnCsbrksV57TLB2ZqFwHYe/exec'; 
+        const ALL_CODES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRm-fuERtGkR7pKutrDGwNyM15pIt3h9JmmWb-CkIjZiL4ku62sacb1uR2p-HGO9mqbu7xOEtvUo2U5/pub?gid=1435223312&single=true&output=csv';
+        const ADMIN_PASSWORD_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRm-fuERtGkR7pKutrDGwNyM15pIt3h9JmmWb-CkIjZiL4ku62sacb1uR2p-HGO9mqbu7xOEtvUo2U5/pub?gid=906161943&single=true&output=csv';
+        
+        let validCodes = [];
+        let votedCodesFromServer = [];
+        let adminPasswords = [];
+        const codeClassMap = new Map();
+        let loggedInCode = '';
+
+        const candidates = [
+             { id: 1, number: '01', ketua: 'NHEYRINDA AFRILIAN', wakil: 'NAZILAH MENTARI HARYAN', visi: 'Bersama Kami Memperbaiki bukan Mengatur', img: 'images/paslon1.png' },
+             { id: 2, number: '02', ketua: 'IHDA NURDIANA EFELYN', wakil: 'BALQIS NADHIRAH SAKHIYAH', visi: 'Jalanin, kalian nikmatin', img: 'images/paslon2.png' },
+             { id: 3, number: '03', ketua: 'RACHMAD AIDIEL ADHA', wakil: 'NANDANA RAKHA DANISWARA', visi: 'Aktif, Kreatif dan Inovatif', img: 'images/paslon3.png' },
+             { id: 4, number: '04', ketua: 'GILANG AKBAR PRAYOGA', wakil: 'MUHAMMAD HARU SALAM', visi: 'Aktif, Kreatif dan Bersahabat', img: 'images/paslon4.png' }
+        ];
+        
+        const loginPage = document.getElementById('login-page');
+        const votingPage = document.getElementById('voting-page');
+        const candidatesGrid = document.getElementById('candidates-grid');
+        const voteAlert = document.getElementById('vote-alert');
+        const uniqueCodeInput = document.getElementById('unique-code-input');
+        const loginError = document.getElementById('login-error');
+        const loginButton = document.getElementById('login-button');
+        const loginButtonText = document.getElementById('login-button-text');
+        const loginLoader = document.getElementById('login-loader');
+        const logoutContainer = document.getElementById('logout-container');
+
+        async function initializeAppData() {
+            try {
+                loginButton.disabled = true;
+                loginButtonText.textContent = 'Memuat Data...';
+                loginLoader.classList.remove('hidden');
+                loginButtonText.classList.add('hidden');
+
+                // Ambil semua data secara paralel untuk efisiensi
+                const [allCodesResponse, scriptResponse, passwordResponse] = await Promise.all([
+                    fetch(ALL_CODES_CSV_URL),
+                    fetch(SCRIPT_URL),
+                    fetch(ADMIN_PASSWORD_CSV_URL)
+                ]);
+
+                // Proses data kode pemilih
+                const allCodesData = await allCodesResponse.text();
+                const rows = allCodesData.split('\n').slice(1);
+                rows.forEach(row => {
+                    const columns = row.split(',');
+                    const code = columns[1]?.trim();
+                    const studentClass = columns[2]?.trim();
+                    if (code && studentClass) {
+                        codeClassMap.set(code, studentClass);
+                        validCodes.push(code);
+                    }
+                });
+                
+                // Proses data kode yang sudah memilih
+                if (!scriptResponse.ok) throw new Error('Gagal menghubungi server.');
+                const result = await scriptResponse.json();
+                if (result.status === 'success') {
+                    votedCodesFromServer = result.data;
+                } else {
+                    throw new Error(result.message || 'Gagal memuat data suara.');
+                }
+
+                // Proses data password admin
+                const passwordData = await passwordResponse.text();
+                adminPasswords = passwordData.split('\n').slice(1).map(row => row.split(',')[0]?.trim()).filter(Boolean);
+                
+            } catch (error) {
+                loginError.textContent = 'Gagal memuat data. Coba lagi nanti.';
+                console.error("Initialization Error:", error);
+            } finally {
+                loginButton.disabled = false;
+                loginButtonText.textContent = 'Masuk';
+                loginLoader.classList.add('hidden');
+                loginButtonText.classList.remove('hidden');
+            }
+        }
+        
+        function handleLogin() {
+            const code = uniqueCodeInput.value.trim();
+            loginError.textContent = '';
+
+            if (!code) {
+                loginError.textContent = 'Kode tidak boleh kosong.'; return;
+            }
+            if (validCodes.length === 0) {
+                 loginError.textContent = 'Data belum siap. Mohon tunggu atau muat ulang.'; return;
+            }
+
+            if (votedCodesFromServer.includes(code)) {
+                loginError.textContent = 'Kode unik ini sudah digunakan untuk memilih.';
+                return;
+            }
+            
+            if (!validCodes.includes(code)) {
+                loginError.textContent = 'Kode unik tidak valid.'; return;
+            }
+
+            loggedInCode = code;
+            sessionStorage.setItem('loggedInCode', code);
+            showVotingPage();
+        }
+
+        function showVotingPage() {
+            loginPage.classList.add('hidden');
+            votingPage.classList.remove('hidden');
+            renderCandidates();
+            
+            const votedOnThisBrowser = JSON.parse(localStorage.getItem('votedOnThisBrowser') || '[]');
+            if (votedOnThisBrowser.includes(loggedInCode)) {
+                voteAlert.innerHTML = `
+                    <p class="font-bold">Anda Sudah Memilih</p>
+                    <p>Terima kasih atas partisipasi Anda.</p>`;
+                voteAlert.className = 'max-w-4xl mx-auto bg-blue-100 border-l-4 border-blue-500 text-blue-800 p-4 rounded-lg mb-8';
+                logoutContainer.classList.remove('hidden');
+                disableAllButtons();
+            }
+        }
+
+        function renderCandidates() {
+            candidatesGrid.innerHTML = '';
+            candidates.forEach(candidate => {
+                const card = `
+                    <div class="bg-white rounded-2xl shadow-lg overflow-hidden transform hover:-translate-y-2 transition-transform duration-300 flex flex-col border border-gray-200">
+                        <div class="relative">
+                            <img class="w-full aspect-[9/16] object-cover object-top" src="${candidate.img}" alt="Paslon ${candidate.number}">
+                            <div class="absolute top-0 right-0 bg-amber-600 text-white text-3xl font-black w-16 h-16 flex items-center justify-center rounded-bl-2xl">${candidate.number}</div>
+                        </div>
+                        <div class="p-4 flex-grow flex flex-col text-center">
+                            <h3 class="text-xl font-bold text-gray-900">${candidate.ketua}</h3>
+                            <p class="text-amber-600 font-medium text-base">${candidate.wakil}</p>
+                            <p class="text-gray-600 text-sm mt-2 flex-grow">"${candidate.visi}"</p>
+                            <button id="vote-btn-${candidate.id}" onclick="castVote(${candidate.id})" class="vote-button w-full mt-4 bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 text-base rounded-lg transition-colors duration-300">
+                                Pilih Paslon ${candidate.number}
+                            </button>
+                        </div>
+                    </div>`;
+                candidatesGrid.innerHTML += card;
+            });
+            const votedOnThisBrowser = JSON.parse(localStorage.getItem('votedOnThisBrowser') || '[]');
+            if (votedOnThisBrowser.includes(loggedInCode)) {
+                disableAllButtons();
+            }
+        }
+        
+        async function castVote(candidateId) {
+            const votedOnThisBrowser = JSON.parse(localStorage.getItem('votedOnThisBrowser') || '[]');
+            if (votedOnThisBrowser.includes(loggedInCode)) return;
+
+            document.querySelectorAll('.vote-button').forEach(btn => btn.disabled = true);
+            const voteButton = document.getElementById(`vote-btn-${candidateId}`);
+            const originalButtonText = voteButton.textContent;
+            voteButton.innerHTML = `<div class="loader mx-auto"></div>`;
+
+            const codeForVote = sessionStorage.getItem('loggedInCode');
+            const userClass = codeClassMap.get(codeForVote);
+
+            if (!codeForVote || !userClass) {
+                alert('Sesi tidak valid atau data kelas tidak ditemukan. Silakan login kembali.');
+                window.location.reload();
+                return;
+            }
+
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    redirect: 'follow', 
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ 
+                        kodeUnik: codeForVote, 
+                        pilihan: candidateId, 
+                        kelas: userClass
+                    }),
+                });
+                
+                if (!response.ok) {
+                   throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    const updatedVotedList = JSON.parse(localStorage.getItem('votedOnThisBrowser') || '[]');
+                    if (!updatedVotedList.includes(codeForVote)) {
+                        updatedVotedList.push(codeForVote);
+                    }
+                    localStorage.setItem('votedOnThisBrowser', JSON.stringify(updatedVotedList));
+                    
+                    voteAlert.innerHTML = `
+                        <p class="font-bold">Terima Kasih!</p>
+                        <p>Suara Anda telah berhasil direkam. Anda tidak dapat memilih lagi.</p>`;
+                    voteAlert.className = 'max-w-4xl mx-auto bg-green-100 border-l-4 border-green-500 text-green-800 p-4 rounded-lg mb-8';
+                    logoutContainer.classList.remove('hidden');
+                    disableAllButtons();
+
+                } else if (result.message === 'already_voted') {
+                    const updatedVotedList = JSON.parse(localStorage.getItem('votedOnThisBrowser') || '[]');
+                    if (!updatedVotedList.includes(codeForVote)) {
+                        updatedVotedList.push(codeForVote);
+                    }
+                    localStorage.setItem('votedOnThisBrowser', JSON.stringify(updatedVotedList));
+                    
+                    voteAlert.innerHTML = `
+                        <p class="font-bold">Gagal Menyimpan Suara</p>
+                        <p>Kode unik ini sudah pernah digunakan untuk memilih sebelumnya.</p>`;
+                    voteAlert.className = 'max-w-4xl mx-auto bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-4 rounded-lg mb-8';
+                    logoutContainer.classList.remove('hidden');
+                    disableAllButtons();
+                } else {
+                    throw new Error(result.message || 'Terjadi kesalahan di server.');
+                }
+
+            } catch (error) {
+                console.error('Error submitting vote:', error);
+                voteAlert.innerHTML = `
+                    <p class="font-bold">Terjadi Kesalahan</p>
+                    <p>Gagal mengirim suara. Periksa koneksi Anda. Error: ${error.message}</p>`;
+                voteAlert.className = 'max-w-4xl mx-auto bg-red-100 border-l-4 border-red-500 text-red-800 p-4 rounded-lg mb-8';
+                document.querySelectorAll('.vote-button').forEach(btn => btn.disabled = false);
+                voteButton.innerHTML = originalButtonText;
+            }
+        }
+
+        function disableAllButtons() {
+            document.querySelectorAll('.vote-button').forEach(button => {
+                button.disabled = true;
+                button.innerHTML = 'Pilihan Tersimpan';
+            });
+        }
+        
+        function handleLogout() {
+            sessionStorage.removeItem('loggedInCode');
+            window.location.reload();
+        }
+
+        function promptForReset() {
+            if (adminPasswords.length === 0) {
+                alert('Data admin belum siap. Coba lagi sesaat.');
+                return;
+            }
+            const password = prompt("Masukkan password admin untuk mereset data browser:");
+            if (password === null) return; // Pengguna menekan Batal
+
+            if (adminPasswords.includes(password)) {
+                resetAllData();
+            } else {
+                alert("Password salah.");
+            }
+        }
+
+        function resetAllData() {
+            if (confirm('YAKIN INGIN MERESET? Tindakan ini akan menghapus status login dan riwayat vote di browser ini.')) {
+                localStorage.clear();
+                sessionStorage.clear();
+                window.location.reload();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loggedInCode = sessionStorage.getItem('loggedInCode');
+            if (loggedInCode) {
+                showVotingPage();
+            } else {
+                initializeAppData();
+            }
+        });
+    </script>
+</body>
+</html>
+
